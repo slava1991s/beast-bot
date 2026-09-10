@@ -13,27 +13,13 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y git zip unzip openjdk-17-jdk autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev cython3
-
-      - name: Install Buildozer and Cython
-        run: |
-          pip install --upgrade pip
-          pip install "cython<3.0" buildozer
-
       - name: Build APK with Buildozer
-        run: |
-          buildozer -v android debug
+        uses: ArtemShtepenko/kivy-buildozer-action@v1.2
+        with:
+          save_artifact: true
 
-      - name: Upload APK Artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: BeastAITrader-APK
+          name: My-Bybit-Bot
           path: bin/*.apk
