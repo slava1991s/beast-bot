@@ -11,3 +11,4 @@ fullscreen = 0
 android.permissions = INTERNET, ACCESS_NETWORK_STATE
 android.api = 33
 android.minapi = 21
+android.accept_sdk_licenses = True
