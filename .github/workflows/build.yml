@@ -8,18 +8,58 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
+    env:
+      ANDROID_SDK_ROOT: ${{ runner.home }}/.buildozer/android/platform/android-sdk
 
     steps:
-      - name: Checkout Code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Build APK with Buildozer
-        uses: ArtemShtepenko/kivy-buildozer-action@v1.2
-        with:
-          save_artifact: true
+      - name: Install system deps
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y openjdk-17-jdk wget unzip zip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev python3-pip
 
-      - name: Upload APK
+      - name: Install Python deps
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install cython==0.29.36 buildozer
+
+      - name: Download Android commandline tools
+        run: |
+          mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
+          cd $ANDROID_SDK_ROOT
+          wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline.zip
+          unzip -q cmdline.zip -d cmdline-tools
+          # move to expected path
+          mv cmdline-tools/cmdline-tools cmdline-tools/latest || true
+          rm cmdline.zip
+
+      - name: Add sdk tools to PATH
+        run: |
+          echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          echo "$ANDROID_SDK_ROOT/platform-tools" >> $GITHUB_PATH
+          echo "$ANDROID_SDK_ROOT/emulator" >> $GITHUB_PATH
+
+      - name: Install SDK packages and accept licenses
+        run: |
+          # обновляем sdkmanager
+          yes | sdkmanager --sdk_root=$ANDROID_SDK_ROOT --licenses || true
+          # ставим platform-tools и нужные build-tools и платформы (добавьте нужные версии при необходимости)
+          sdkmanager --sdk_root=$ANDROID_SDK_ROOT "platform-tools" "platforms;android-33" "build-tools;33.0.0" "build-tools;37.0.0" "extras;android;m2repository" "extras;google;m2repository"
+          # принять лицензии ещё раз
+          yes | sdkmanager --sdk_root=$ANDROID_SDK_ROOT --licenses
+
+      - name: Show installed build-tools
+        run: ls -la $ANDROID_SDK_ROOT/build-tools || true
+
+      - name: Build APK with Buildozer
+        run: |
+          # если у вас спецификация buildozer.spec в корне, просто запускаем
+          buildozer -v android debug
+
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: My-Bybit-Bot
+          name: BeastAITrader-APK
           path: bin/*.apk
